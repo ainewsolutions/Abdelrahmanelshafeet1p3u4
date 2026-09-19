@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en" dir="ltr">
 <head>
     <meta charset="UTF-8">
@@ -513,6 +513,10 @@
                     <i class="fas fa-keyboard"></i>
                     <h3>Correct Sentences</h3>
                 </div>
+                <div class="game-card" onclick="startGame(6)">
+                    <i class="fas fa-pen-fancy"></i>
+                    <h3>Rewrite Sentences</h3>
+                </div>
             </div>
         </div>
 
@@ -537,7 +541,7 @@
 
             <!-- Game 5 Area (Rewrite) -->
             <div id="rewrite-area" style="display: none; text-align: center;">
-                <p class="rewrite-instruction">Rewrite the sentence correcting the word(s) in brackets:</p>
+                <p class="rewrite-instruction" id="rewrite-instruction-text">Rewrite the sentence correcting the word(s) in brackets:</p>
                 <div id="rewrite-bracket" style="font-size: 1.5rem; color: var(--primary); font-weight: bold; margin-bottom: 30px;"></div>
                 <input type="text" id="rewrite-input" placeholder="Type your answer here..." autocomplete="off">
                 <button id="btn-submit-rewrite" class="btn-back" style="background: var(--primary); box-shadow: 0 4px 0 #064e3b; margin: 20px auto; font-size: 1.3rem; padding: 15px 40px;" onclick="submitRewrite()">Submit</button>
@@ -613,11 +617,27 @@
             { q: "You (drink) more water.", bracket: "Correct the mistake / Rewrite", ans: ["You should drink more water", "You should drink more water."] },
         ];
 
+        const rewriteSentencesTemplates = [
+            { q: "It's the law to wear a seatbelt.", bracket: "must", ans: ["You must wear a seatbelt", "You must wear a seatbelt."] },
+            { q: "It's forbidden to smoke here.", bracket: "mustn't", ans: ["You mustn't smoke here", "You must not smoke here", "You mustn't smoke here."] },
+            { q: "It's a good idea to study harder.", bracket: "should", ans: ["You should study harder", "You should study harder."] },
+            { q: "It's bad for you to eat too much sugar.", bracket: "shouldn't", ans: ["You shouldn't eat too much sugar", "You should not eat too much sugar", "You shouldn't eat too much sugar."] },
+            { q: "He is able to swim very well.", bracket: "can", ans: ["He can swim very well", "He can swim very well."] },
+            { q: "It's not allowed to take photos here.", bracket: "mustn't", ans: ["You mustn't take photos here", "You must not take photos here", "You mustn't take photos here."] },
+            { q: "It's important to respect our parents.", bracket: "should", ans: ["We should respect our parents", "We should respect our parents."] },
+            { q: "It's the law for drivers to stop at a red light.", bracket: "must", ans: ["Drivers must stop at a red light", "Drivers must stop at a red light."] },
+            { q: "It's forbidden to be late for school.", bracket: "mustn't", ans: ["You mustn't be late for school", "You must not be late for school", "You mustn't be late for school."] },
+            { q: "It's a good idea to drink more water.", bracket: "should", ans: ["You should drink more water", "You should drink more water."] },
+        ];
+
         const generateQuestions = (count, type) => {
             if (type === 'REWRITE') {
                 return [...rewriteTemplates].sort(() => Math.random() - 0.5).slice(0, 10);
             }
-            
+            if (type === 'REWRITE_SENT') {
+                return [...rewriteSentencesTemplates].sort(() => Math.random() - 0.5).slice(0, 10);
+            }
+
             // Multiple Choice / TF questions based on Unit 4: Screen Time Grammar (Modal Verbs (must / mustn't / can / should))
             const templates = [
                 { text: "You _____ wear a seatbelt in the car. It's the law.", ans: "must", wrong: ["can", "should", "mustn't"] },
@@ -736,9 +756,10 @@
             let type = 'MCQ';
             if (gameId === 4) type = 'TF';
             if (gameId === 5) type = 'REWRITE';
-            
+            if (gameId === 6) type = 'REWRITE_SENT';
+
             // Generate 25 questions for MCQ/TF/Games, 10 for Rewrite
-            let qCount = (gameId === 5) ? 10 : 25;
+            let qCount = (gameId === 5 || gameId === 6) ? 10 : 25;
             currentQuestionsList = generateQuestions(qCount, type);
             totalQuestions = currentQuestionsList.length;
             totalQSpan.innerText = totalQuestions;
@@ -782,18 +803,25 @@
             } else if (currentGameId === 3) {
                 targetsArea.style.display = 'block';
                 startTargetsGame(qData);
-            } else if (currentGameId === 5) {
+            } else if (currentGameId === 5 || currentGameId === 6) {
                 rewriteArea.style.display = 'block';
-                rewriteBracket.innerText = `${qData.q}`;
-                qContainer.style.display = 'none'; // Hide main question text for rewrite
+                const instructionEl = document.getElementById('rewrite-instruction-text');
+                if (currentGameId === 5) {
+                    rewriteBracket.innerText = `${qData.q}`;
+                    qContainer.style.display = 'none'; // Hide main question text for rewrite
+                    instructionEl.innerText = 'Rewrite the sentence correcting the word(s) in brackets:';
+                } else {
+                    rewriteBracket.innerText = `(${qData.bracket})`;
+                    instructionEl.innerText = 'Rewrite the sentence using the word in brackets:';
+                }
                 rewriteInput.value = '';
                 rewriteInput.disabled = false;
                 rewriteInput.style.borderColor = "#cbd5e1";
-                
+
                 const submitBtn = document.getElementById('btn-submit-rewrite');
                 submitBtn.disabled = false;
                 submitBtn.style.display = 'inline-block';
-                
+
                 document.getElementById('btn-next-rewrite').style.display = 'none';
                 document.getElementById('rewrite-feedback').innerHTML = '';
                 setTimeout(() => rewriteInput.focus(), 100);
@@ -839,7 +867,7 @@
                 playSound('wrong');
                 showFeedbackIcon(false);
                 mistakes.push({
-                    q: qData.q,
+                    q: (currentGameId === 6) ? `${qData.q} (${qData.bracket})` : qData.q,
                     correct: correctAnsStr
                 });
                 feedbackDiv.innerHTML = `<span style="color: var(--danger);"><i class="fas fa-times"></i> Answer: ${correctAnsStr}</span>`;
